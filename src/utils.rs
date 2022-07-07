@@ -8,27 +8,29 @@ pub async fn from_here_get_this(url: &str, parse: &str, attr: &str) -> Option<Ve
         .expect(&format!("Failed to get HTML from '{}'", url));
 
     // We havent received an error but we cannot continue if the status code isnt OK
-    if reqwest::StatusCode::OK == response.status() {
-        let mut attribute_values: Vec<String> = Vec::new();
-        let html = response
-            .text()
-            .await
-            .expect("Failed to parse HTML response to text");
 
-        let document = Html::parse_document(&html);
-        let selector = Selector::parse(parse).expect("Failed to create parser");
-        let selections = document.select(&selector);
+    match response.status() {
+        reqwest::StatusCode::OK => {
+            let mut attribute_values: Vec<String> = Vec::new();
+            let html = response
+                .text()
+                .await
+                .expect("Failed to parse HTML response to text");
 
-        for element in selections {
-            if let Some(target_url) = element.value().attr(attr) {
-                attribute_values.push(target_url.to_owned());
+            let document = Html::parse_document(&html);
+            let selector = Selector::parse(parse).expect("Failed to create parser");
+            let selections = document.select(&selector);
+
+            for element in selections {
+                if let Some(target_url) = element.value().attr(attr) {
+                    attribute_values.push(target_url.to_owned());
+                }
             }
+
+            Some(attribute_values)
         }
-
-        return Some(attribute_values);
+        _ => None,
     }
-
-    None
 }
 
 pub async fn download_image(url: &str, save_to: &str) {
