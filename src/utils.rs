@@ -1,24 +1,25 @@
 use reqwest;
 use scraper::{Html, Selector};
+use std::error::Error;
 use std::process::Command;
 
-pub async fn from_here_get_this(url: &str, parse: &str, attr: &str) -> Option<Vec<String>> {
-    let response = reqwest::get(url)
-        .await
-        .expect(&format!("Failed to get HTML from '{}'", url));
-
-    // We havent received an error but we cannot continue if the status code isnt OK
+pub async fn from_here_get_this(
+    url: &str,
+    parse: &str,
+    attr: &str,
+) -> Result<Vec<String>, Box<dyn Error>> {
+    let response = reqwest::get(url).await?;
 
     match response.status() {
         reqwest::StatusCode::OK => {
             let mut attribute_values: Vec<String> = Vec::new();
-            let html = response
-                .text()
-                .await
-                .expect("Failed to parse HTML response to text");
+            let html = response.text().await?;
 
             let document = Html::parse_document(&html);
-            let selector = Selector::parse(parse).expect("Failed to create parser");
+            let selector = match Selector::parse(parse) {
+                Ok(selector) => selector,
+                Err(_) => return Err("Failed to create css parser".into())
+            };
             let selections = document.select(&selector);
 
             for element in selections {
@@ -27,35 +28,26 @@ pub async fn from_here_get_this(url: &str, parse: &str, attr: &str) -> Option<Ve
                 }
             }
 
-            Some(attribute_values)
+            Ok(attribute_values)
         }
-        _ => None,
+        _ => Err(format!("Received non OK result when getting HTML from '{}'", &url).into()),
     }
 }
 
-pub async fn download_image(url: &str, save_to: &str) {
-    let image_bytes = reqwest::get(url)
-        .await
-        .expect(&format!("Failed to get HTML from '{}'", url))
-        .bytes()
-        .await
-        .expect("Failed to convert HTML to bytes");
+pub async fn download_image(url: &str, save_to: &str) -> Result<(), Box<dyn Error>> {
+    let image_bytes = reqwest::get(url).await?.bytes().await?;
+    image::load_from_memory(&image_bytes)?.save(&save_to)?;
 
-    image::load_from_memory(&image_bytes)
-        .expect("Failed to get load bytes as image")
-        .save(&save_to)
-        .expect(&format!("Failed to save image as '{}'", save_to));
+    Ok(())
 }
 
-pub fn set_desktop_backgound(image_path: &str) {
+pub fn set_desktop_backgound(image_path: &str) -> Result<(), Box<dyn Error>> {
     Command::new("gsettings")
         .arg("set")
         .arg("org.gnome.desktop.background")
         .arg("picture-uri-dark")
         .arg(format!("file://{}", &image_path))
-        .output()
-        .expect(&format!(
-            "Failed to set '{}' image as background",
-            image_path
-        ));
+        .output()?;
+
+    Ok(())
 }

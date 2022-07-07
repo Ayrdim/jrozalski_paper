@@ -34,7 +34,7 @@ async fn main() {
 
     // Download the first image (the resulting image) on the page
     // all other images are intermediate images
-    utils::download_image(&url_images[0], image_path_local).await;
+    utils::download_image(&url_images[0], image_path_local).await.expect("Failed to download image");
 
-    utils::set_desktop_backgound(image_path_local);
+    utils::set_desktop_backgound(image_path_local).expect("Failed to set desktop background");
 }
