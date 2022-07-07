@@ -3,9 +3,10 @@ use std::env;
 
 mod utils;
 
-// TODO make a devian art version of this - inspo https://www.deviantart.com/tolkyes/gallery
-/// Command:
+/// Example of how to run with cargo:
 ///     - cargo run /home/ryan/Pictures/Wallpapers/scrapedImage.jpg
+/// 
+/// Note that this will only work with gnome when in dark mode (see set_desktop_backgound() definition)
 
 #[tokio::main]
 async fn main() {
